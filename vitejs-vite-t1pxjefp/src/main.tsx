@@ -1,22 +1,30 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
-import AppShell from "./AppShell";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import App from './App';
 import Weekly from './routes/Weekly';
 
-const root = document.getElementById("root")!;
-createRoot(root).render(<AppShell />);
+function Root() {
+  return (
+    <BrowserRouter>
+      {/* ONE parent element wraps nav + routes */}
+      <div>
+        <nav style={{ padding: 12, borderBottom: '1px solid #eee' }}>
+          <Link to="/" style={{ marginRight: 12 }}>Dashboard</Link>
+          <Link to="/weekly">Weekly</Link>
+        </nav>
 
-window.addEventListener("load", () => {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .catch((err) => console.error("SW registration failed:", err));
-  }
-  <Route path="/weekly" element={<Weekly />} />
-<nav className="p-3 border-b">
-  <a href="/" className="mr-3">Dashboard</a>
-  <a href="/weekly">Weekly</a>
-</nav>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/weekly" element={<Weekly />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
+  );
+}
 
-});
-
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <Root />
+  </React.StrictMode>
+);
