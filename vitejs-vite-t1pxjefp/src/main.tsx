@@ -1,30 +1,34 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Link, Outlet } from 'react-router-dom';
 import App from './App';
 import Weekly from './routes/Weekly';
 
-function Root() {
+function Shell() {
   return (
-    <BrowserRouter>
-      {/* ONE parent element wraps nav + routes */}
-      <div>
-        <nav style={{ padding: 12, borderBottom: '1px solid #eee' }}>
-          <Link to="/" style={{ marginRight: 12 }}>Dashboard</Link>
-          <Link to="/weekly">Weekly</Link>
-        </nav>
-
-        <Routes>
-          <Route path="/" element={<App />} />
-          <Route path="/weekly" element={<Weekly />} />
-        </Routes>
-      </div>
-    </BrowserRouter>
+    // ONE parent element
+    <div>
+      <nav style={{ padding: 12, borderBottom: '1px solid #eee' }}>
+        <Link to="/" style={{ marginRight: 12 }}>Dashboard</Link>
+        <Link to="/weekly">Weekly</Link>
+      </nav>
+      <Outlet />
+    </div>
   );
 }
 
+const router = createBrowserRouter([
+  {
+    element: <Shell />,
+    children: [
+      { path: '/', element: <App /> },
+      { path: '/weekly', element: <Weekly /> }
+    ]
+  }
+]);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Root />
+    <RouterProvider router={router} />
   </React.StrictMode>
 );
