@@ -1,33 +1,30 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider, Link, Outlet } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import Weekly from './routes/Weekly';
 
-function Shell() {
+function Root() {
   return (
-    <div>
-      <nav style={{ padding: 12, borderBottom: '1px solid #eee' }}>
-        <Link to="/weekly" style={{ marginRight: 12, fontWeight: 600 }}>Weekly Focus</Link>
-        <Link to="/" style={{ opacity: 0.7 }}>Home</Link>
-      </nav>
-      <Outlet />
-    </div>
+    <HashRouter>
+      <div>
+        <nav style={{ padding: 12, borderBottom: '1px solid #eee' }}>
+          <Link to="/" style={{ marginRight: 12, fontWeight: 600 }}>Weekly Focus</Link>
+          <a href="https://google.com" style={{ opacity: 0.6 }}>Test Link</a>
+        </nav>
+
+        <Routes>
+          {/* Home shows Weekly */}
+          <Route path="/" element={<Weekly />} />
+          {/* Keep a direct weekly route too */}
+          <Route path="/weekly" element={<Weekly />} />
+        </Routes>
+      </div>
+    </HashRouter>
   );
 }
 
-const router = createBrowserRouter([
-  {
-    element: <Shell />,
-    children: [
-      // Show Weekly at the home page too (so you can't miss it)
-      { path: '/', element: <Weekly /> },
-      { path: '/weekly', element: <Weekly /> }
-    ]
-  }
-]);
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <Root />
   </React.StrictMode>
 );
