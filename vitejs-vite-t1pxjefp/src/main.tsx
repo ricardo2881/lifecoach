@@ -2,6 +2,11 @@ import { createRoot } from "react-dom/client";
 import { HashRouter, Routes, Route, Link } from "react-router-dom";
 import Weekly from "./routes/Weekly";
 
+// Unregister any old service workers that might serve stale bundles
+if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+}
+
 function Root() {
   return (
     <HashRouter>
@@ -21,6 +26,3 @@ function Root() {
 
 const root = document.getElementById("root")!;
 createRoot(root).render(<Root />);
-if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
-  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
-}
