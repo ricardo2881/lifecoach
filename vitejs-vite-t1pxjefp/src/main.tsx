@@ -1,21 +1,23 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { HashRouter, Routes, Route, Link } from 'react-router-dom';
-import Weekly from './routes/Weekly';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { HashRouter, Routes, Route, Link } from "react-router-dom";
+import Weekly from "./routes/Weekly";
+
+// STOP old cached SW from serving stale code (safe to keep)
+if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+}
 
 function Root() {
   return (
     <HashRouter>
       <div>
-        <nav style={{ padding: 12, borderBottom: '1px solid #eee' }}>
+        <nav style={{ padding: 12, borderBottom: "1px solid #eee" }}>
           <Link to="/" style={{ marginRight: 12, fontWeight: 600 }}>Weekly Focus</Link>
-          <a href="https://google.com" style={{ opacity: 0.6 }}>Test Link</a>
+          <a href="https://example.com" style={{ opacity: 0.6 }}>Test link</a>
         </nav>
-
         <Routes>
-          {/* Home shows Weekly */}
           <Route path="/" element={<Weekly />} />
-          {/* Keep a direct weekly route too */}
           <Route path="/weekly" element={<Weekly />} />
         </Routes>
       </div>
@@ -23,8 +25,5 @@ function Root() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <Root />
-  </React.StrictMode>
-);
+const root = document.getElementById("root")!;
+createRoot(root).render(<Root />);
