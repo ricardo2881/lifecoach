@@ -134,10 +134,14 @@ export default function Weekly() {
   return (
     <div style={{ padding: 16, maxWidth: 720, margin: "0 auto" }}>
       <header>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>Weekly Focus</h1>
-        <p style={{ opacity: 0.7, fontSize: 13 }}>
-          {week?.startsAt} – {week?.endsAt}
-        </p>
+        import { isoWeekId, startOfWeekISO, endOfWeekISO, todayISO, displayDate } from "../utils/date";
+
+// ...
+
+<p style={{ opacity: 0.7, fontSize: 13 }}>
+  {displayDate(week?.startsAt)} – {displayDate(week?.endsAt)}
+</p>
+
       </header>
 
       {/* PLAN */}
