@@ -12,6 +12,8 @@ export default function Weekly() {
   const [todayAction, setTodayAction] = useState<MicroAction | null>(null);
   const [remaining, setRemaining] = useState(120);
   const [running, setRunning] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState("");
+
 
   // Load/initialize current week, outcomes, and today's action
   useEffect(() => {
