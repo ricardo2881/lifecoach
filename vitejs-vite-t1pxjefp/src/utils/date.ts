@@ -17,6 +17,12 @@ export function endOfWeekISO(d: Date = new Date()) {
   end.setDate(start.getDate() + 6);
   return todayISO(end);
 }
+// Convert "YYYY-MM-DD" → "DD/MM/YY"
+export function displayDate(iso: string | undefined) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y.slice(2)}`;
+}
 
 // Unique id like "2025-W35"
 export function isoWeekId(d: Date = new Date()) {
