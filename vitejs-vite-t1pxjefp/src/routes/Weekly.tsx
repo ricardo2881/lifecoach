@@ -65,6 +65,17 @@ if (existingReview?.notes) setReviewNotes(existingReview.notes);
     setRemaining(120);
     setRunning(false);
   }
+async function saveReview() {
+  if (!week) return;
+  await db.reviews.put({
+    id: week.id,       // use the week id as review id
+    weekId: week.id,
+    notes: reviewNotes,
+    wins: [],          // you can fill this later
+    kpiSnapshot: {}    // optional metrics later
+  });
+  alert("Review saved.");
+}
 
   // Timer
   useEffect(() => {
