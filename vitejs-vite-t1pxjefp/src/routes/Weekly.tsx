@@ -175,7 +175,7 @@ async function saveReview() {
     <span style={{ fontSize: 12, opacity: 0.6 }}>
       Saved per week ({week?.startsAt}–{week?.endsAt})
     </span>
+  </div>
 </section>
-    </div>
   );
 }
