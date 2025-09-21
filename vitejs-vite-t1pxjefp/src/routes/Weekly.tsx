@@ -25,9 +25,9 @@ export default function Weekly() {
         await db.weeks.put(w);
       }
       setWeek(w);
-
-      const outs = await db.outcomes.where("weekId").equals(w.id).toArray();
-      setOutcomes(outs);
+      // Load review notes for this week (if any)
+const existingReview = await db.reviews.get(w.id);
+if (existingReview?.notes) setReviewNotes(existingReview.notes);
 
       const actions = await db.actions.where("date").equals(todayISO()).toArray();
       setTodayAction(actions[0] ?? null);
