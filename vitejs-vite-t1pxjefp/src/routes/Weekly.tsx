@@ -157,9 +157,25 @@ async function saveReview() {
       </section>
 
       <section style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 18 }}>Review (Friday)</h2>
-        <p style={{ opacity: .7, fontSize: 14 }}>Capture wins and set next week’s outcomes.</p>
-      </section>
+  <h2 style={{ fontSize: 18 }}>Review (Friday)</h2>
+
+  <p style={{ opacity: .7, fontSize: 14, marginBottom: 8 }}>
+    Capture wins and set next week’s outcomes.
+  </p>
+
+  <textarea
+    value={reviewNotes}
+    onChange={(e) => setReviewNotes(e.target.value)}
+    placeholder="What went well? What will you improve? Next week's focus?"
+    style={{ width: "100%", minHeight: 120, padding: 8 }}
+  />
+
+  <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+    <button onClick={saveReview}>Save review</button>
+    <span style={{ fontSize: 12, opacity: 0.6 }}>
+      Saved per week ({week?.startsAt}–{week?.endsAt})
+    </span>
+</section>
     </div>
   );
 }
