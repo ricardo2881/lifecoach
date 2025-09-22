@@ -1,3 +1,4 @@
+// vitejs-vite-t1pxjefp/src/routes/Weekly.tsx
 import React, { useEffect, useState } from "react";
 import { db, Week, Outcome as OType, MicroAction as AType } from "../data/store";
 import {
@@ -6,6 +7,7 @@ import {
   endOfWeekISO,
   todayISO,
   displayDate,
+  displayDateTime,
 } from "../utils/date";
 
 type Outcome = OType;
@@ -42,7 +44,7 @@ export default function Weekly() {
       const outs = await db.outcomes.where("weekId").equals(w.id).toArray();
       setOutcomes(outs);
 
-      // load today's action
+      // load today's action (by date)
       const actions = await db.actions.where("date").equals(todayISO()).toArray();
       setTodayAction(actions[0] ?? null);
 
@@ -157,7 +159,7 @@ export default function Weekly() {
             placeholder="Outcome…"
             style={{ flex: 1, padding: 8 }}
           />
-          <button onClick={addOutcome}>Add</button>
+          <button onClick={addOutcome} disabled={outcomes.length >= 3}>Add</button>
         </div>
 
         <ul style={{ marginTop: 8 }}>
@@ -218,8 +220,7 @@ export default function Weekly() {
 
             {todayAction.completedAt && (
               <div style={{ color: "green", marginTop: 6 }}>
-                Logged at{" "}
-                {new Date(todayAction.completedAt).toLocaleTimeString()}
+                Logged at {displayDateTime(todayAction.completedAt)}
               </div>
             )}
           </div>
