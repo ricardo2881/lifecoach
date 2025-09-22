@@ -1,9 +1,11 @@
+import React, { useEffect, useState } from "react";
+import { db, Week, Outcome as OType, MicroAction as AType } from "../data/store";
 import {
   isoWeekId,
   startOfWeekISO,
   endOfWeekISO,
   todayISO,
-  displayDate,          // <- add this
+  displayDate,
 } from "../utils/date";
 
 type Outcome = OType;
@@ -15,9 +17,9 @@ export default function Weekly() {
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [newOutcome, setNewOutcome] = useState("");
   const [todayAction, setTodayAction] = useState<MicroAction | null>(null);
-  const [remaining, setRemaining] = useState(120);
-  const [running, setRunning] = useState(false);
-  const [reviewNotes, setReviewNotes] = useState("");
+  const [remaining, setRemaining] = useState<number>(120);
+  const [running, setRunning] = useState<boolean>(false);
+  const [reviewNotes, setReviewNotes] = useState<string>("");
 
   // ---- load on mount ----
   useEffect(() => {
@@ -110,7 +112,7 @@ export default function Weekly() {
     if (!running) return;
 
     const t = setInterval(() => {
-      setRemaining((r) => {
+      setRemaining((r: number) => {
         if (r <= 1) {
           clearInterval(t);
           setRunning(false);
@@ -138,14 +140,10 @@ export default function Weekly() {
   return (
     <div style={{ padding: 16, maxWidth: 720, margin: "0 auto" }}>
       <header>
-        import { isoWeekId, startOfWeekISO, endOfWeekISO, todayISO, displayDate } from "../utils/date";
-
-// ...
-
-<p style={{ opacity: 0.7, fontSize: 13 }}>
-  {displayDate(week?.startsAt)}{" – "}{displayDate(week?.endsAt)}
-</p>
-
+        <h1 style={{ fontSize: 24, fontWeight: 700 }}>Weekly Focus</h1>
+        <p style={{ opacity: 0.7, fontSize: 13 }}>
+          {displayDate(week?.startsAt)}{" – "}{displayDate(week?.endsAt)}
+        </p>
       </header>
 
       {/* PLAN */}
@@ -163,7 +161,7 @@ export default function Weekly() {
         </div>
 
         <ul style={{ marginTop: 8 }}>
-          {outcomes.map((o) => (
+          {outcomes.map((o: Outcome) => (
             <li
               key={o.id}
               style={{
@@ -245,7 +243,7 @@ export default function Weekly() {
         <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
           <button onClick={saveReview}>Save review</button>
           <span style={{ fontSize: 12, opacity: 0.6 }}>
-            Saved per week ({week?.startsAt}–{week?.endsAt})
+            Saved per week ({displayDate(week?.startsAt)} – {displayDate(week?.endsAt)})
           </span>
         </div>
       </section>
