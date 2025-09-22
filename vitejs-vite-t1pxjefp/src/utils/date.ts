@@ -32,3 +32,9 @@ export function isoWeekId(d: Date = new Date()) {
   const week = Math.ceil((diff + oneJan.getDay() + 1) / 7);
   return `${start.getFullYear()}-W${String(week).padStart(2, "0")}`;
 }
+// Convert "YYYY-MM-DD" → "DD/MM/YY"
+export function displayDate(iso?: string) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y.slice(2)}`;
+}
