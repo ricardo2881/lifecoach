@@ -143,7 +143,7 @@ export default function Weekly() {
 // ...
 
 <p style={{ opacity: 0.7, fontSize: 13 }}>
-  {displayDate(week?.startsAt)} – {displayDate(week?.endsAt)}
+  {displayDate(week?.startsAt)}{" – "}{displayDate(week?.endsAt)}
 </p>
 
       </header>
