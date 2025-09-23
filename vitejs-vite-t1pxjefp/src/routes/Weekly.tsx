@@ -183,7 +183,7 @@ export default function Weekly() {
 
   // ---- helpers ----
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
-  const ss = String(remaining % 60)).padStart(2, "0");
+  const ss = String(remaining % 60).padStart(2, "0"); // <-- fixed here
 
   const disableAdd = useMemo(() => outcomes.length >= 3, [outcomes.length]);
 
