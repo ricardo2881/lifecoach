@@ -1,5 +1,5 @@
 // vitejs-vite-t1pxjefp/src/routes/Weekly.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { db, Week, Outcome as OType, MicroAction as AType } from "../data/store";
 import {
   isoWeekId,
@@ -8,6 +8,7 @@ import {
   todayISO,
   displayDate,
   displayDateTime,
+  displayDateLong,
 } from "../utils/date";
 
 type Outcome = OType;
@@ -22,6 +23,10 @@ export default function Weekly() {
   const [remaining, setRemaining] = useState<number>(120);
   const [running, setRunning] = useState<boolean>(false);
   const [reviewNotes, setReviewNotes] = useState<string>("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  // For debounced auto-save
+  const saveTimer = useRef<number | null>(null);
 
   // ---- load on mount ----
   useEffect(() => {
@@ -84,6 +89,12 @@ export default function Weekly() {
       return;
     }
 
+    // Optionally mark first as "in_progress"
+    if (first.status === "planned") {
+      await db.outcomes.put({ ...first, status: "in_progress" });
+      setOutcomes(await db.outcomes.where("weekId").equals(week.id).toArray());
+    }
+
     const a: MicroAction = {
       id: crypto.randomUUID(),
       outcomeId: first.id,
@@ -97,17 +108,29 @@ export default function Weekly() {
     setRunning(false);
   }
 
-  async function saveReview() {
+  // Auto-save review (debounced ~800ms)
+  useEffect(() => {
     if (!week) return;
-    await db.reviews.put({
-      id: week.id,
-      weekId: week.id,
-      notes: reviewNotes,
-      wins: [],
-      kpiSnapshot: {},
-    });
-    alert("Review saved.");
-  }
+    // Ignore the very first load (when notes are set from DB)
+    // We'll treat any subsequent changes as user typing.
+    setSaveStatus("saving");
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(async () => {
+      await db.reviews.put({
+        id: week.id,
+        weekId: week.id,
+        notes: reviewNotes,
+        wins: [],
+        kpiSnapshot: {},
+      });
+      setSaveStatus("saved");
+      saveTimer.current = null;
+    }, 800);
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewNotes, week?.id]);
 
   // ---- timer effect ----
   useEffect(() => {
@@ -123,6 +146,13 @@ export default function Weekly() {
               todayAction.completedAt = new Date().toISOString();
               await db.actions.put(todayAction);
               setTodayAction({ ...todayAction });
+
+              // Optional: mark outcome as done on first completion
+              const oc = outcomes.find((o) => o.id === todayAction.outcomeId);
+              if (oc && oc.status !== "done") {
+                await db.outcomes.put({ ...oc, status: "done" });
+                setOutcomes(await db.outcomes.where("weekId").equals(week!.id).toArray());
+              }
             }
           })();
           return 0;
@@ -132,11 +162,13 @@ export default function Weekly() {
     }, 1000);
 
     return () => clearInterval(t);
-  }, [running, todayAction]);
+  }, [running, todayAction, outcomes, week]);
 
   // ---- helpers ----
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
   const ss = String(remaining % 60).padStart(2, "0");
+
+  const disableAdd = useMemo(() => outcomes.length >= 3, [outcomes.length]);
 
   // ---- render ----
   return (
@@ -144,7 +176,7 @@ export default function Weekly() {
       <header>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Weekly Focus</h1>
         <p style={{ opacity: 0.7, fontSize: 13 }}>
-          {displayDate(week?.startsAt)}{" – "}{displayDate(week?.endsAt)}
+          {displayDateLong(week?.startsAt)}{" — "}{displayDateLong(week?.endsAt)}
         </p>
       </header>
 
@@ -159,7 +191,7 @@ export default function Weekly() {
             placeholder="Outcome…"
             style={{ flex: 1, padding: 8 }}
           />
-          <button onClick={addOutcome} disabled={outcomes.length >= 3}>Add</button>
+          <button onClick={addOutcome} disabled={disableAdd}>Add</button>
         </div>
 
         <ul style={{ marginTop: 8 }}>
@@ -171,6 +203,7 @@ export default function Weekly() {
                 border: "1px solid #eee",
                 borderRadius: 8,
                 marginTop: 6,
+                background: o.status === "done" ? "#f0fff0" : undefined,
               }}
             >
               {o.title}{" "}
@@ -236,16 +269,17 @@ export default function Weekly() {
 
         <textarea
           value={reviewNotes}
-          onChange={(e) => setReviewNotes(e.target.value)}
+          onChange={(e) => {
+            setSaveStatus("saving");
+            setReviewNotes(e.target.value);
+          }}
           placeholder="What went well? What will you improve? Next week's focus?"
           style={{ width: "100%", minHeight: 120, padding: 8 }}
         />
 
-        <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-          <button onClick={saveReview}>Save review</button>
-          <span style={{ fontSize: 12, opacity: 0.6 }}>
-            Saved per week ({displayDate(week?.startsAt)} – {displayDate(week?.endsAt)})
-          </span>
+        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+          {saveStatus === "saving" && "Saving…"}
+          {saveStatus === "saved" && `Saved (${displayDate(todayISO())})`}
         </div>
       </section>
     </div>
