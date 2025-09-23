@@ -22,7 +22,11 @@ export default function Weekly() {
   const [todayAction, setTodayAction] = useState<MicroAction | null>(null);
   const [remaining, setRemaining] = useState<number>(120);
   const [running, setRunning] = useState<boolean>(false);
+
+  // Review: notes + wins + save status
   const [reviewNotes, setReviewNotes] = useState<string>("");
+  const [wins, setWins] = useState<string[]>([]);
+  const [winInput, setWinInput] = useState<string>("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   // For debounced auto-save
@@ -53,9 +57,10 @@ export default function Weekly() {
       const actions = await db.actions.where("date").equals(todayISO()).toArray();
       setTodayAction(actions[0] ?? null);
 
-      // load review notes
+      // load review notes & wins
       const existingReview = await db.reviews.get(w.id);
       if (existingReview?.notes) setReviewNotes(existingReview.notes);
+      if (existingReview?.wins?.length) setWins(existingReview.wins);
     })();
   }, []);
 
@@ -108,11 +113,23 @@ export default function Weekly() {
     setRunning(false);
   }
 
-  // Auto-save review (debounced ~800ms)
+  // Quick wins handlers
+  function addWin() {
+    const text = winInput.trim();
+    if (!text) return;
+    setWins((prev) => [...prev, text]);
+    setWinInput("");
+    setSaveStatus("saving");
+  }
+  function removeWin(index: number) {
+    setWins((prev) => prev.filter((_, i) => i !== index));
+    setSaveStatus("saving");
+  }
+
+  // Auto-save review (notes + wins) — debounced ~800ms
   useEffect(() => {
     if (!week) return;
-    // Ignore the very first load (when notes are set from DB)
-    // We'll treat any subsequent changes as user typing.
+
     setSaveStatus("saving");
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(async () => {
@@ -120,17 +137,17 @@ export default function Weekly() {
         id: week.id,
         weekId: week.id,
         notes: reviewNotes,
-        wins: [],
+        wins,
         kpiSnapshot: {},
       });
       setSaveStatus("saved");
       saveTimer.current = null;
     }, 800);
+
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviewNotes, week?.id]);
+  }, [reviewNotes, wins, week]);
 
   // ---- timer effect ----
   useEffect(() => {
@@ -149,9 +166,9 @@ export default function Weekly() {
 
               // Optional: mark outcome as done on first completion
               const oc = outcomes.find((o) => o.id === todayAction.outcomeId);
-              if (oc && oc.status !== "done") {
+              if (oc && oc.status !== "done" && week) {
                 await db.outcomes.put({ ...oc, status: "done" });
-                setOutcomes(await db.outcomes.where("weekId").equals(week!.id).toArray());
+                setOutcomes(await db.outcomes.where("weekId").equals(week.id).toArray());
               }
             }
           })();
@@ -166,7 +183,7 @@ export default function Weekly() {
 
   // ---- helpers ----
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
-  const ss = String(remaining % 60).padStart(2, "0");
+  const ss = String(remaining % 60)).padStart(2, "0");
 
   const disableAdd = useMemo(() => outcomes.length >= 3, [outcomes.length]);
 
@@ -267,6 +284,7 @@ export default function Weekly() {
           Capture wins and set next week’s outcomes.
         </p>
 
+        {/* Notes (auto-saved) */}
         <textarea
           value={reviewNotes}
           onChange={(e) => {
@@ -276,6 +294,45 @@ export default function Weekly() {
           placeholder="What went well? What will you improve? Next week's focus?"
           style={{ width: "100%", minHeight: 120, padding: 8 }}
         />
+
+        {/* Quick Wins */}
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Quick wins</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={winInput}
+              onChange={(e) => setWinInput(e.target.value)}
+              placeholder="Add a short win…"
+              style={{ flex: 1, padding: 8 }}
+            />
+            <button onClick={addWin}>Add win</button>
+          </div>
+
+          {wins.length > 0 && (
+            <ul style={{ marginTop: 8 }}>
+              {wins.map((w, i) => (
+                <li
+                  key={`${w}-${i}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: 8,
+                    border: "1px solid #eee",
+                    borderRadius: 8,
+                    marginTop: 6,
+                    background: "#fafafa",
+                  }}
+                >
+                  <span>{w}</span>
+                  <button onClick={() => removeWin(i)} aria-label={`Remove ${w}`}>
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
           {saveStatus === "saving" && "Saving…"}
