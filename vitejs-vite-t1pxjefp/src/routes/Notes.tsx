@@ -6,7 +6,8 @@ type Tab = 'dump' | 'reflect';
 
 function useVoiceInput(onResult: (text: string) => void) {
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   const supported =
     typeof window !== 'undefined' &&
@@ -14,13 +15,14 @@ function useVoiceInput(onResult: (text: string) => void) {
 
   const start = useCallback(() => {
     if (!supported) return;
-    const SR =
-      (window as typeof window & { webkitSpeechRecognition: typeof SpeechRecognition })
-        .webkitSpeechRecognition ?? window.SpeechRecognition;
-    const rec = new SR();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rec: any = new SR();
     rec.lang = 'en-US';
     rec.interimResults = false;
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
       onResult(e.results[0][0].transcript);
       setListening(false);
     };
