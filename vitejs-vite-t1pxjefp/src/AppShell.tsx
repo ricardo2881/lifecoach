@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import LifeCoachApp from "./LifeCoachApp";
 import LowTechPWAGuide from "./LowTechPWAGuide";
+import Notes from "./routes/Notes";
 
 function Nav() {
   const loc = useLocation();
@@ -18,6 +19,7 @@ function Nav() {
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ fontSize: 18, fontWeight: 800 }}>Ricardo - Life Optimization</div>
         <Link to="/" style={tabStyle(loc.pathname === "/")}>Dashboard</Link>
+        <Link to="/notes" style={tabStyle(loc.pathname === "/notes")}>📓 Notes</Link>
         <Link to="/guide" style={tabStyle(loc.pathname === "/guide")}>Install Guide</Link>
       </div>
       <a href="/" style={{ fontSize: 12 }}>Refresh</a>
@@ -33,6 +35,7 @@ export default function AppShell() {
         <div style={{ height: 12 }} />
         <Routes>
           <Route path="/" element={<LifeCoachApp />} />
+          <Route path="/notes" element={<Notes />} />
           <Route path="/guide" element={<LowTechPWAGuide />} />
         </Routes>
       </div>
