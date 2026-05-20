@@ -1,13 +1,18 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNotes } from '../hooks/useNotes';
 import { exportToObsidian } from '../utils/obsidianExport';
+import { downloadWeeklyReview } from '../utils/weeklyReview';
 
 type Tab = 'dump' | 'reflect';
 
 function useVoiceInput(onResult: (text: string) => void) {
   const [listening, setListening] = useState(false);
+  const [interim, setInterim] = useState('');
+  const [voiceError, setVoiceError] = useState('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
 
   const supported =
     typeof window !== 'undefined' &&
@@ -15,30 +20,52 @@ function useVoiceInput(onResult: (text: string) => void) {
 
   const start = useCallback(() => {
     if (!supported) return;
+    setVoiceError('');
+    setInterim('');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rec: any = new SR();
     rec.lang = 'en-US';
-    rec.interimResults = false;
+    rec.interimResults = true;
+    rec.continuous = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
-      onResult(e.results[0][0].transcript);
-      setListening(false);
+      let finalText = '';
+      let interimText = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+        else interimText += e.results[i][0].transcript;
+      }
+      if (finalText) { onResultRef.current(finalText); setInterim(''); }
+      else setInterim(interimText);
     };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (e: any) => {
+      setListening(false);
+      setInterim('');
+      if (e.error === 'not-allowed') setVoiceError('Microphone permission denied. Please allow access in your browser settings.');
+      else if (e.error === 'no-speech') setVoiceError('No speech detected. Try again.');
+      else if (e.error === 'network') setVoiceError('Network error. Check your connection.');
+      else setVoiceError(`Voice error: ${e.error}. Try again.`);
+    };
+    rec.onend = () => { setListening(false); setInterim(''); };
     recognitionRef.current = rec;
-    rec.start();
-    setListening(true);
-  }, [supported, onResult]);
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      setVoiceError('Could not start voice input. Please try again.');
+    }
+  }, [supported]);
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop();
     setListening(false);
+    setInterim('');
   }, []);
 
-  return { listening, start, stop, supported };
+  return { listening, start, stop, supported, interim, voiceError, clearError: () => setVoiceError('') };
 }
 
 function MoodSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
@@ -97,6 +124,11 @@ export default function Notes() {
   const dumpVoice = useVoiceInput((text) => setDumpText((prev) => prev ? `${prev} ${text}` : text));
   const mindVoice = useVoiceInput((text) => setOnMind((prev) => prev ? `${prev} ${text}` : text));
 
+  // Show interim speech text live in the textarea
+  const dumpDisplayText = dumpVoice.interim
+    ? `${dumpText}${dumpText ? ' ' : ''}${dumpVoice.interim}`
+    : dumpText;
+
   const handleSaveDump = () => {
     if (!dumpText.trim()) return;
     addBrainDump(dumpText);
@@ -130,7 +162,24 @@ export default function Notes() {
       {activeTab === 'dump' && (
         <div style={panelStyle}>
           <p style={{ fontSize: 13, color: '#9ca3af', marginTop: 0 }}>Capture any thought before it disappears.</p>
-          <textarea placeholder="What's on your mind right now..." value={dumpText} onChange={(e) => setDumpText(e.target.value)} style={textareaStyle} />
+          <textarea
+            placeholder="What's on your mind right now..."
+            value={dumpDisplayText}
+            onChange={(e) => setDumpText(e.target.value)}
+            style={{ ...textareaStyle, color: dumpVoice.interim ? '#9ca3af' : 'inherit' }}
+          />
+          {dumpVoice.voiceError && (
+            <div style={{ marginTop: 6, padding: '8px 10px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#dc2626', display: 'flex', justifyContent: 'space-between' }}>
+              <span>{dumpVoice.voiceError}</span>
+              <button onClick={dumpVoice.clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}>✕</button>
+            </div>
+          )}
+          {dumpVoice.listening && (
+            <div style={{ marginTop: 6, fontSize: 12, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#6366f1', animation: 'pulse 1s infinite' }} />
+              Listening… speak now
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {dumpVoice.supported && (
               <button onClick={dumpVoice.listening ? dumpVoice.stop : dumpVoice.start} style={dumpVoice.listening ? listeningBtnStyle : micBtnStyle}>
@@ -181,6 +230,18 @@ export default function Notes() {
       {notes.length === 0 && (
         <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: 40, fontSize: 14 }}>No notes yet — start with a brain dump above ☝️</p>
       )}
+
+      {/* Weekly Review Export */}
+      <div style={{ marginTop: 32, padding: '16px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>📅 Weekly Review</div>
+        <p style={{ fontSize: 13, color: '#7c3aed', margin: '0 0 12px' }}>
+          Export this week's habits, mood, wins and brain dumps as a ready-to-use Obsidian note.
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => downloadWeeklyReview(0)} style={weeklyBtnStyle}>⬇ This Week</button>
+          <button onClick={() => downloadWeeklyReview(1)} style={{ ...weeklyBtnStyle, background: '#f3e8ff', color: '#6d28d9' }}>⬇ Last Week</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -198,3 +259,4 @@ const listeningBtnStyle: React.CSSProperties = { ...micBtnStyle, background: '#f
 const exportBtnStyle: React.CSSProperties = { padding: '6px 12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, fontSize: 13, color: '#16a34a', cursor: 'pointer', fontWeight: 500 };
 const cardStyle: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px', marginBottom: 10 };
 const deleteBtnStyle: React.CSSProperties = { background: 'none', border: 'none', color: '#d1d5db', cursor: 'pointer', fontSize: 13, padding: 0 };
+const weeklyBtnStyle: React.CSSProperties = { padding: '8px 14px', background: '#ede9fe', border: '1px solid #c4b5fd', borderRadius: 8, fontSize: 13, color: '#7c3aed', cursor: 'pointer', fontWeight: 600 };
